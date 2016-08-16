@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>自选股管理</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="grey"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+    <link rel="stylesheet" href="./script/bootstrap-3.3.6-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./script/sweetalert-master/dist/sweetalert.css">
+
+    <script language="JavaScript" src="./script/jquery-2.1.3.min.js"></script>
+    <script src="./script/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="./script/sweetalert-master/dist/sweetalert.min.js"></script>
+</head>
+<body>
+
+<div class="container-fluid">
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <nav class="navbar navbar-default" role="navigation">
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1" style="display: block;">
+                    <ul class="nav navbar-nav navbar-left">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">设置自选股<strong class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="environment_settings.html">设置环境变量</a>
+                                </li>
+                                <li>
+                                    <a href="variable_settings.html">设置系统文字</a>
+                                </li>
+                                <li>
+                                    <a href="stock_settings.html">设置自选股</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row-fluid">
+        <div class="span12">
+            <h3 class="text-center">
+                设置自选股
+            </h3>
+            <table class="table table-bordered table-striped" id="list">
+                <thead>
+                <tr>
+                    <th>
+                        股票代码
+                    </th>
+                    <th>
+                        拼音
+                    </th>
+                    <th>
+                        股票名称
+                    </th>
+                    <th>
+                        别名
+                    </th>
+                    <th style='text-align: center;'>
+                        操作
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+            <button class="btn btn-large btn-info btn-block" type="button" id="addCustomStock">添加自选股</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var shellStock_repertory = [];
+
+    function getStockCode() {
+        //取股票代码
+        swal({
+                    title: "输入股票代码",
+                    type: "input",
+                    showCancelButton: true,
+                    closeOnConfirm: false,
+                    animation: "slide-from-top"
+                },
+                function(inputValue){
+                    if (inputValue === false) {
+//				按下Cancel键
+                        return false;
+                    }
+                    if (inputValue === "") {
+                        swal.showInputError("输入内容不能为空");
+                        return false;
+                    }
+                    var dyjs = "http://suggest3.sinajs.cn/suggest/key=" + inputValue + "&name=external_variable";
+                    $.ajax({
+                        url: dyjs,
+                        dataType: 'script',
+                        cache: true,
+                        timeout: 15000,
+                        error: function() {
+                            swal.showInputError("网络超时，稍后再试。");
+                        },
+                        beforeSend: function() {
+                            var external_variable = "";
+                        },
+                        success: function() {
+                            if (external_variable.length == 0) {
+                                swal.showInputError("未找到指定的股票");
+                                return false;
+                            } else {
+                                var itemsInit = external_variable.split(";");
+                                var items = [];
+                                var tmp = [];
+                                var i;
+                                for (var i=0;i<itemsInit.length;i++) {
+                                    tmp = itemsInit[i].split(",");
+                                    if (tmp[5]) {
+                                        if (tmp[3].length > 2) {
+                                            if (tmp[3].substr(0,2) == "sh" || tmp[3].substr(0,2) == "sz") {
+                                                items[items.length] = tmp;
+                                            }
+                                        }
+
+                                    }
+                                }
+
+                                if (items.length > 0) {
+                                    var html = "";
+                                    html += "<select id='suggest' style='padding:5px;font-size: 22px;background:#f8f1c5;color:#d2345c;text-align:justify;letter-spacing:5px;'>";
+                                    for (i=0;i<items.length;i++) {
+                                        html += "<option value='"+items[i][2]+","+items[i][3]+","+items[i][4]+","+items[i][5]+"'>"+items[i][4]+"</option>";
+                                    }
+                                    html += "</select>";
+                                    swal({
+                                        title: "加入自选股",
+                                        text: html,
+                                        html: true,
+                                        showCancelButton: true,
+                                        closeOnConfirm: false,
+                                        animation: "slide-from-top"
+                                    }, function(isConfirm) {
+                                        if (isConfirm) {
+                                            var items = $("#suggest").val().split(",");
+                                            var itemsJson = {
+                                                "code": items[0],          //代码:600106
+                                                "fullCode": items[1],      //完整代码:sh600106
+                                                "originName": items[2],    //原始名称:重庆路桥
+                                                "pinyin": items[3],        //拼音:cqlq
+                                                "alias": items[2]          //别名:重庆路桥(初始为原始名称)
+                                            };
+                                            var itemRepeat = 0;
+                                            for (var i=0;i<shellStock_repertory.length;i++) {
+                                                if (itemRepeat == 0) {
+                                                    if (itemsJson.code == shellStock_repertory[i]['code']) {
+                                                        itemRepeat++;
+                                                    }
+                                                }
+                                            }
+                                            if (itemRepeat == 1) {
+                                                swal.showInputError("该股票已存在自选股中");
+                                                return false;
+                                            } else {
+                                                shellStock_repertory.push(itemsJson);
+                                                window.localStorage.setItem("shellStock_repertory", JSON.stringify(shellStock_repertory));
+                                                var delayTime;
+                                                delayTime = setTimeout(function() {
+                                                    showStockList();
+                                                }, 1500);
+                                                swal({
+                                                    title: "添加成功",
+                                                    html: true,
+                                                    type: "success",
+                                                    timer: 2000,
+                                                    showConfirmButton: false
+                                                });
+                                            }
+                                        } else {
+                                            swal.close();
+                                        }
+                                    });
+                                } else {
+                                    swal.showInputError("未找到指定的股票");
+                                }
+                                return false;
+
+                            }
+                        }
+                    });
+
+
+                }
+        );
+        $("#sa_input_error").click(function(){
+            $("#sa_input").val("");
+            $(this).removeClass("show");
+        });
+    }
+
+
+    $("#addCustomStock").on("click",function () {
+        getStockCode();
+    });
+
+    function showStockList() {
+        console.log("shellStock_repertory:");
+        $("#list tbody").empty();
+        var tr = "";
+        for (var i=0;i<shellStock_repertory.length;i++) {
+            tr = "<tr>" +
+                    "<td title=\""+shellStock_repertory[i]["fullCode"]+"\">"+shellStock_repertory[i]["code"]+"</td>" +
+                    "<td>"+shellStock_repertory[i]["pinyin"]+"</td>" +
+                    "<td>"+shellStock_repertory[i]["originName"]+"</td>" +
+                    "<td>"+shellStock_repertory[i]["alias"]+"</td>" +
+                    "<td style='text-align: center;'><img src='./images/edit.png' style='width: 18px;height: 18px;cursor: pointer;margin-right:5px;vertical-align: -webkit-baseline-middle;' id=\"vi_"+shellStock_repertory[i]["fullCode"]+"\">" +
+                    "<img src='./images/delete.png' style='width: 18px;height:18px;cursor: pointer;vertical-align: -webkit-baseline-middle;' id=\"del_"+shellStock_repertory[i]["fullCode"]+"\"></td>" +
+                    "</tr>";
+            $("#list tbody").append(tr);
+        }
+        $("[id^='del_']").on("click",function() {
+            var objectStr = $(this).attr('id').split("_");
+            var tag = objectStr[1];
+            swal({
+                title: "删除",
+                text: "确定要删除股票 " + tag + "?",
+                html: true,
+                showCancelButton: true,
+                closeOnConfirm: false,
+                animation: "slide-from-top"
+            }, function(isConfirm) {
+                if (isConfirm) {
+                    for (var i=0;i<shellStock_repertory.length;i++) {
+                        if (shellStock_repertory[i]["fullCode"] == tag) {
+                            shellStock_repertory.splice(i,1);
+                        }
+                    }
+                    window.localStorage.setItem("shellStock_repertory", JSON.stringify(shellStock_repertory));
+                    var delayTime;
+                    delayTime = setTimeout(function() {
+                        showStockList();
+                    }, 1500);
+                    swal({
+                        title: "删除成功",
+                        html: true,
+                        type: "success",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    swal.close();
+                }
+            });
+        });
+        $("[id^='vi_']").on("click",function() {
+            var objectStr = $(this).attr('id').split("_");
+            var tag = objectStr[1];
+            var index = null;
+            for (var i=0;i<shellStock_repertory.length;i++) {
+                if (shellStock_repertory[i]["fullCode"] == tag) {
+                    index = i;
+                }
+            }
+
+            swal({
+                title: "修改股票别名",
+                text: "股票原名: " + shellStock_repertory[index]["originName"],
+                type: "input",
+                inputType: "text",
+                inputPlaceholder : "股票别名: " + shellStock_repertory[index]["alias"],
+                inputValue: shellStock_repertory[index]["alias"],
+                showCancelButton: true,
+                closeOnConfirm: false,
+                animation: "slide-from-top"
+            },
+            function(inputValue){
+                if (inputValue === false) return false;
+                if (inputValue === "") {
+                    swal.showInputError("You need to write something!");
+                } else {
+                    shellStock_repertory[index]["alias"] = inputValue;
+                    window.localStorage.setItem("shellStock_repertory", JSON.stringify(shellStock_repertory));
+                    var delayTime;
+                    delayTime = setTimeout(function() {
+                        showStockList();
+                    }, 1500);
+                    swal({
+                        title: "修改成功",
+                        html: true,
+                        type: "success",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            });
+
+            console.log(tag+" | index:"+index);
+        });
+
+    }
+    function initlocalStorage() {
+        if (!window.localStorage.getItem("shellStock_repertory")) {
+            window.localStorage.setItem("shellStock_repertory", JSON.stringify(shellStock_repertory));
+        } else {
+            shellStock_repertory = JSON.parse(window.localStorage.getItem("shellStock_repertory"));
+        }
+        showStockList();
+    }
+
+    initlocalStorage();
+
+</script>
+
+</body>
+</html>

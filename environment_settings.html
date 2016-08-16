@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>环境变量管理</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="grey"/>
+    <meta name="apple-mobile-web-app-capable" content="yes"/>
+    <meta name="format-detection" content="telephone=no"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+
+    <link rel="stylesheet" href="./script/bootstrap-3.3.6-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./script/sweetalert-master/dist/sweetalert.css">
+
+    <script language="JavaScript" src="./script/jquery-2.1.3.min.js"></script>
+    <script src="./script/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="./script/sweetalert-master/dist/sweetalert.min.js"></script>
+</head>
+<body>
+
+
+
+<div class="container-fluid">
+
+    <div class="row clearfix">
+        <div class="col-md-12 column">
+            <nav class="navbar navbar-default" role="navigation">
+                <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1" style="display: block;">
+
+                    <ul class="nav navbar-nav navbar-left">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">设置环境变量<strong class="caret"></strong></a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a href="environment_settings.html">设置环境变量</a>
+                                </li>
+                                <li>
+                                    <a href="variable_settings.html">设置系统文字</a>
+                                </li>
+                                <li>
+                                    <a href="stock_settings.html">设置自选股</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row-fluid">
+        <div class="span12">
+            <h3 class="text-center">
+                设置环境变量
+            </h3>
+            <table class="table table-bordered table-striped" id="list">
+                <thead>
+                <tr>
+                    <th>
+                        变量标签
+                    </th>
+                    <th>
+                        变量名称
+                    </th>
+                    <th>
+                        变量数值
+                    </th>
+                    <th>
+                        操作
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    var shellStock_env_default = {
+        "refeshTime": {
+            "name":"行情刷新时间(秒)",
+            "value":"10"
+        },
+        "reloadTime": {
+            "name":"出错后的重启间隔时间(秒)",
+            "value":"20"
+        },
+    };
+    var shellStock_env = {};
+
+    function initlocalStorage() {
+        if (!window.localStorage.getItem("shellStock_env")) {
+            window.localStorage.setItem("shellStock_env", JSON.stringify(shellStock_env_default));
+        }
+        shellStock_env = JSON.parse(window.localStorage.getItem("shellStock_env"));
+        showSettingList();
+    }
+
+    function showSettingList() {
+        $("#list tbody").empty();
+        var tr = "";
+        for (key in shellStock_env) {
+            tr = "<tr><td>"+key+"</td><td>"+shellStock_env[key]["name"]+"</td><td>"+shellStock_env[key]["value"]+"</td><td><button id=\"vi_"+key+"\">Edit</button></td></tr>";
+            $("#list tbody").append(tr);
+        }
+        $("[id^='vi_']").on("click",function(){
+            var objectStr = $(this).attr('id').split("_");
+            var tag = objectStr[1];
+            swal({
+                title: "修改变量: " + tag,
+                text: "默认值: " + shellStock_env_default[tag]["value"],
+                type: "input",
+                inputType: "text",
+                inputPlaceholder : "当前值: " + shellStock_env[tag]["value"],
+                inputValue: shellStock_env[tag]["value"],
+                showCancelButton: true,
+                closeOnConfirm: false,
+                animation: "slide-from-top"
+            },
+            function(inputValue){
+                if (inputValue === false) return false;
+                if (inputValue === "") {
+                    swal.showInputError("You need to write something!");
+                } else {
+                    shellStock_env[tag]["value"] = inputValue;
+                    window.localStorage.setItem("shellStock_env", JSON.stringify(shellStock_env));
+                    var delayTime;
+                    delayTime = setTimeout(function() {
+                        showSettingList();
+                    }, 1500);
+                    swal({
+                        title: "修改成功",
+                        html: true,
+                        type: "success",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            });
+        });
+    }
+    initlocalStorage();
+</script>
+
+</body>
+</html>
